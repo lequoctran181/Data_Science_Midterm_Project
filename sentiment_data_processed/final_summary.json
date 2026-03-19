@@ -1,0 +1,16 @@
+{
+  "sentiment_raw_cleaned_csv": "/Users/TranAnh/Documents/Data_file_NCKH/cleaned_public_sentiment_quarterly/sentiment_raw_cleaned.csv",
+  "sentiment_monthly_cleaned_csv": "/Users/TranAnh/Documents/Data_file_NCKH/cleaned_public_sentiment_quarterly/sentiment_monthly_cleaned.csv",
+  "sentiment_quarterly_cleaned_by_topic_csv": "/Users/TranAnh/Documents/Data_file_NCKH/cleaned_public_sentiment_quarterly/sentiment_quarterly_cleaned_by_topic.csv",
+  "model_ready_quarterly_with_scaled_csv": "/Users/TranAnh/Documents/Data_file_NCKH/cleaned_public_sentiment_quarterly/model_ready_quarterly_with_scaled.csv",
+  "scaler_parameters_csv": "/Users/TranAnh/Documents/Data_file_NCKH/cleaned_public_sentiment_quarterly/scaler_parameters.csv",
+  "macro_quarterly_prepared_csv": "/Users/TranAnh/Documents/Data_file_NCKH/cleaned_public_sentiment_quarterly/macro_quarterly_prepared.csv",
+  "eda": {
+    "model_ready_quarterly_csv": "/Users/TranAnh/Documents/Data_file_NCKH/cleaned_public_sentiment_quarterly/eda/model_ready_quarterly.csv",
+    "eda_descriptive_stats_csv": "/Users/TranAnh/Documents/Data_file_NCKH/cleaned_public_sentiment_quarterly/eda/eda_descriptive_stats.csv",
+    "eda_correlation_matrix_csv": "/Users/TranAnh/Documents/Data_file_NCKH/cleaned_public_sentiment_quarterly/eda/eda_correlation_matrix.csv",
+    "stationarity_tests_csv": "/Users/TranAnh/Documents/Data_file_NCKH/cleaned_public_sentiment_quarterly/eda/stationarity_tests.csv",
+    "plots_dir": "/Users/TranAnh/Documents/Data_file_NCKH/cleaned_public_sentiment_quarterly/eda/plots",
+    "decomposition_dir": "/Users/TranAnh/Documents/Data_file_NCKH/cleaned_public_sentiment_quarterly/eda/decomposition"
+  }
+}
