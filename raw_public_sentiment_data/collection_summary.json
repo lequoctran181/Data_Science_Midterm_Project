@@ -1,0 +1,34 @@
+{
+  "start": "2016-03-19T00:23:59.762445+00:00",
+  "end": "2026-03-19T00:23:59.762445+00:00",
+  "queries": [
+    "\"tăng trưởng kinh tế\" Việt Nam",
+    "\"lạm phát\" Việt Nam",
+    "\"lãi suất\" Việt Nam",
+    "\"Vietnam economic growth\"",
+    "\"Vietnam inflation\"",
+    "\"Vietnam interest rate\"",
+    "GDP Việt Nam",
+    "CPI Việt Nam",
+    "ngân hàng nhà nước lãi suất"
+  ],
+  "n_unique_videos": 3335,
+  "n_comments": 12066,
+  "sentiment_engine": "vader",
+  "translated_before_sentiment": false,
+  "outputs": {
+    "video_index_csv": "/Users/TranAnh/Documents/Data_file_NCKH/output_public_sentiment/youtube_video_index.csv",
+    "raw_csv": "/Users/TranAnh/Documents/Data_file_NCKH/output_public_sentiment/youtube_comments_sentiment_raw.csv",
+    "raw_parquet": "/Users/TranAnh/Documents/Data_file_NCKH/output_public_sentiment/youtube_comments_sentiment_raw.parquet",
+    "monthly_csv": "/Users/TranAnh/Documents/Data_file_NCKH/output_public_sentiment/youtube_sentiment_monthly.csv"
+  },
+  "label_distribution": {
+    "neutral": 8274,
+    "positive": 2318,
+    "negative": 1474
+  },
+  "topic_distribution": {
+    "economic_growth": 7225,
+    "inflation": 4841
+  }
+}
