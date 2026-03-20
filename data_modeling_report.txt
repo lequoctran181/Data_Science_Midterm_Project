@@ -1,0 +1,475 @@
+
+==============================================================================================================
+14. LẬP MÔ HÌNH
+==============================================================================================================
+Current working dir: /Users/TranAnh/Documents/Data_file_NCKH
+Detected data source: /Users/TranAnh/Documents/Data_file_NCKH
+Full text output will also be saved to: /Users/TranAnh/Documents/Data_file_NCKH/ordered_modeling_report.txt
+
+14.1. Khung nghiên cứu
+----------------------
+- Mô hình A (cấu trúc/kinh tế lượng): giải thích GDP_Growth bằng các biến vĩ mô chính thức.
+- Mô hình B (forecast/nowcast): kiểm tra giá trị bổ sung của sentiment trên overlap thực 2019Q3-2025Q1.
+- Các mục 15-20 bên dưới sẽ được in đúng thứ tự lập mô hình trong đề cương.
+
+14.2. Công thức mô hình
+-----------------------
+Model A - OLS/HAC (annual):
+GDP_Growth_t = beta0 + beta1*Inflation_t + beta2*Interest_Rate_t + beta3*FDI_pct_GDP_t
+               + beta4*Investment_pct_GDP_t + beta5*Export_pct_GDP_t
+               + beta6*Unemployment_Rate_t + beta7*Gov_Spending_pct_GDP_t + e_t
+
+Model B - Dynamic regression on actual overlap:
+GDP_Growth_t = alpha0 + alpha1*GDP_Growth_{t-1} + alpha2*Inflation_t + alpha3*Interest_Rate_t
+               + alpha4*Net_Sentiment_t + alpha5*Avg_Sentiment_t + u_t
+
+Forecast model used in section 15:
+y_t = c + sum(phi_i * y_{t-i}) + sum(theta_j * eps_{t-j}) + gamma'X_t + eps_t
+with X_t = [Inflation_t, Interest_Rate_t] for macro SARIMAX.
+
+Where estimated coefficients will appear in the output:
+- Model A beta estimates: Section 17.1 (Annual OLS/HAC coefficient table + estimated equation)
+- Model B alpha estimates: Section 20.1 (dynamic-regression coefficient tables + estimated equations)
+- Final forecasting coefficients: Section 15.4 (final SARIMAX coefficient table + estimated equation)
+
+14.3. Phạm vi dữ liệu dùng cho từng mô hình
+-------------------------------------------
+                          dataset  rows                    range
+Annual macro (usable for Model A)    28                1995-2023
+                  Quarterly macro   120 1995-06-30 -> 2025-03-31
+Quarterly sentiment (topic='all')    27 2019-09-30 -> 2026-03-31
+ Actual overlap macro + sentiment    23 2019-09-30 -> 2025-03-31
+
+14.4. Audit leakage / coverage mismatch
+---------------------------------------
+      variable  nunique_pre_2019Q3  first_value
+    n_comments                   1  3758.000000
+ avg_sentiment                   1     0.029559
+ net_sentiment                   1     0.054816
+positive_ratio                   1     0.090474
+negative_ratio                   1     0.035657
+topic null share before 2019Q3: 1.0
+Kết luận audit: KHÔNG dùng model_ready_quarterly_with_scaled.csv để mô hình hóa lịch sử dài hạn,
+vì sentiment trước 2019Q3 bị backfill bởi cùng một giá trị -> gây leakage.
+
+==============================================================================================================
+15. TIME SERIES FORECASTING
+==============================================================================================================
+
+15.1. Stationarity (ADF/KPSS) để hỗ trợ chọn d
+----------------------------------------------
+            series  adf_stat  adf_p  kpss_stat  kpss_p                               note
+           log_gdp   -0.6910 0.8491     1.8004    0.01 check differencing / cointegration
+     log_gdp_diff1   -2.1804 0.2135     0.3327    0.10          usable after differencing
+        gdp_growth   -3.8251 0.0027     0.2285    0.10                         stationary
+gdp_qoq_pct_recalc   -2.1844 0.2120     0.3330    0.10 check differencing / cointegration
+         inflation   -2.0890 0.2489     0.2809    0.10 check differencing / cointegration
+     interest_rate   -2.2958 0.1733     0.7667    0.01 check differencing / cointegration
+
+15.2. PACF snapshot (first 4 lags)
+----------------------------------
+            series  pacf_lag1  pacf_lag2  pacf_lag3  pacf_lag4
+        gdp_growth     0.9043    -0.4540    -0.1951    -0.0561
+gdp_qoq_pct_recalc     0.8028    -0.0867    -0.1007    -0.0842
+
+15.3. ARIMA vs SARIMAX (train/test theo thời gian)
+--------------------------------------------------
+Train end: 2022-12-31 | Test window: 2023Q1-2024Q4 | Exogenous variables: inflation, interest_rate
+            target   model     order                      exog   RMSE    MAE  MAPE winner_by_RMSE
+           log_gdp   ARIMA (1, 1, 0)                        no 0.0080 0.0074  0.12          ARIMA
+           log_gdp SARIMAX (0, 2, 0) inflation + interest_rate 0.0463 0.0392  0.63          ARIMA
+        gdp_growth   ARIMA (2, 0, 0)                        no 1.8303 1.6438 22.66        SARIMAX
+        gdp_growth SARIMAX (2, 0, 0) inflation + interest_rate 1.5761 1.4318 19.86        SARIMAX
+gdp_qoq_pct_recalc   ARIMA (1, 0, 0)                        no 0.3477 0.3015 14.64        SARIMAX
+gdp_qoq_pct_recalc SARIMAX (0, 0, 3) inflation + interest_rate 0.2232 0.1933  9.66        SARIMAX
+
+15.4. Final macro forecasting model
+-----------------------------------
+Chosen final macro model: SARIMAX(0, 0, 3) on gdp_qoq_pct_recalc with inflation + interest_rate
+                               SARIMAX Results                                
+==============================================================================
+Dep. Variable:     gdp_qoq_pct_recalc   No. Observations:                  119
+Model:               SARIMAX(0, 0, 3)   Log Likelihood                -153.266
+Date:                Fri, 20 Mar 2026   AIC                            320.533
+Time:                        13:39:32   BIC                            339.747
+Sample:                             0   HQIC                           328.332
+                                - 119                                         
+Covariance Type:                  opg                                         
+=================================================================================
+                    coef    std err          z      P>|z|      [0.025      0.975]
+---------------------------------------------------------------------------------
+intercept         2.0264      2.026      1.000      0.317      -1.944       5.997
+inflation         0.2360      0.089      2.661      0.008       0.062       0.410
+interest_rate    -0.0634      0.206     -0.308      0.758      -0.466       0.340
+ma.L1             0.8530      0.209      4.078      0.000       0.443       1.263
+ma.L2             0.6997      0.180      3.879      0.000       0.346       1.053
+ma.L3             0.5158      0.094      5.465      0.000       0.331       0.701
+sigma2            0.8309      0.054     15.489      0.000       0.726       0.936
+===================================================================================
+Ljung-Box (L1) (Q):                   0.17   Jarque-Bera (JB):              3527.88
+Prob(Q):                              0.68   Prob(JB):                         0.00
+Heteroskedasticity (H):               0.26   Skew:                             4.09
+Prob(H) (two-sided):                  0.00   Kurtosis:                        28.87
+===================================================================================
+
+Warnings:
+[1] Covariance matrix calculated using the outer product of gradients (complex-step).
+Estimated SARIMAX equation:
+gdp_qoq_pct_recalc_t = 2.0264 + 0.2360*inflation - 0.0634*interest_rate + 0.8530*eps_(t-1) + 0.6997*eps_(t-2) + 0.5158*eps_(t-3) + eps_t
+Final SARIMAX coefficient table:
+     variable    coef  std_err  t_or_z  p_value  ci_low  ci_high
+    intercept  2.0264   2.0257  1.0004 0.317133 -1.9439   5.9967
+    inflation  0.2360   0.0887  2.6609 0.007794  0.0622   0.4099
+interest_rate -0.0634   0.2056 -0.3084 0.757810 -0.4664   0.3396
+        ma.L1  0.8530   0.2091  4.0783 0.000045  0.4430   1.2629
+        ma.L2  0.6997   0.1804  3.8788 0.000105  0.3461   1.0532
+        ma.L3  0.5158   0.0944  5.4647 0.000000  0.3308   0.7008
+Ljung-Box residual test (lags 4, 8):
+     lb_stat  lb_pvalue
+4   5.582340   0.232586
+8  14.202768   0.076631
+Significant final-model parameters (p < 0.05):
+ variable   coef  p_value
+inflation 0.2360 0.007794
+    ma.L1 0.8530 0.000045
+    ma.L2 0.6997 0.000105
+    ma.L3 0.5158 0.000000
+   sigma2 0.8309 0.000000
+
+==============================================================================================================
+16. VAR (VECTOR AUTOREGRESSION)
+==============================================================================================================
+VAR system: Y_t = c + A1*Y_{t-1} + ... + Ap*Y_{t-p} + u_t
+where Y_t = [gdp_growth_t, inflation_t, interest_rate_t]'.
+
+16.1. Johansen cointegration
+----------------------------
+        trace_stat  crit_90  crit_95  crit_99
+r = 0      41.7463  27.0669  29.7961  35.4628
+r <= 1     13.1775  13.4294  15.4943  19.9349
+r <= 2      3.2679   2.7055   3.8415   6.6349
+
+16.2. Lag selection and VAR fit
+-------------------------------
+ VAR Order Selection (* highlights the minimums) 
+=================================================
+      AIC         BIC         FPE         HQIC   
+-------------------------------------------------
+0       4.462       4.535       86.70       4.492
+1      -3.735      -3.444     0.02388      -3.617
+2     -5.961*     -5.452*   0.002578*     -5.755*
+3      -5.830      -5.101    0.002944      -5.534
+4      -5.740      -4.794    0.003224      -5.356
+5      -5.782      -4.617    0.003101      -5.309
+6      -5.952      -4.568    0.002627      -5.390
+7      -5.834      -4.232    0.002973      -5.184
+8      -5.762      -3.942    0.003218      -5.023
+-------------------------------------------------
+Selected lag by AIC: 2
+VAR stability (statsmodels.is_stable): True
+Whiteness p-value (nlags=8): 0.0398
+Max |root|: 1.235
+
+16.3. Granger causality
+-----------------------
+                             hypothesis  p_value
+                inflation -> gdp_growth   0.4001
+            interest_rate -> gdp_growth   0.3321
+inflation + interest_rate -> gdp_growth   0.6475
+
+==============================================================================================================
+17. HỒI QUY ĐA BIẾN (OLS/GLS)
+==============================================================================================================
+Primary structural equation (Model A):
+GDP_Growth_t = beta0 + beta1*Inflation_t + beta2*Interest_Rate_t + beta3*FDI_pct_GDP_t
+               + beta4*Investment_pct_GDP_t + beta5*Export_pct_GDP_t
+               + beta6*Unemployment_Rate_t + beta7*Gov_Spending_pct_GDP_t + e_t
+
+17.1. Annual OLS/HAC
+--------------------
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:             GDP_Growth   R-squared:                       0.234
+Model:                            OLS   Adj. R-squared:                 -0.035
+Method:                 Least Squares   F-statistic:                     1.349
+Date:                Fri, 20 Mar 2026   Prob (F-statistic):              0.280
+Time:                        13:39:32   Log-Likelihood:                -46.241
+No. Observations:                  28   AIC:                             108.5
+Df Residuals:                      20   BIC:                             119.1
+Df Model:                           7                                         
+Covariance Type:                  HAC                                         
+========================================================================================
+                           coef    std err          z      P>|z|      [0.025      0.975]
+----------------------------------------------------------------------------------------
+const                   12.6488      9.416      1.343      0.179      -5.806      31.104
+Inflation               -0.1266      0.058     -2.178      0.029      -0.241      -0.013
+Interest_Rate            0.0294      0.167      0.176      0.860      -0.298       0.357
+FDI_pct_GDP              0.2332      0.201      1.160      0.246      -0.161       0.627
+Investment_pct_GDP      -0.0060      0.131     -0.046      0.964      -0.263       0.251
+Export_pct_GDP          -0.0253      0.029     -0.868      0.385      -0.082       0.032
+Unemployment_Rate       -1.6131      1.244     -1.297      0.195      -4.050       0.824
+Gov_Spending_pct_GDP    -0.2615      0.269     -0.971      0.331      -0.789       0.266
+==============================================================================
+Omnibus:                        0.936   Durbin-Watson:                   1.677
+Prob(Omnibus):                  0.626   Jarque-Bera (JB):                0.916
+Skew:                          -0.272   Prob(JB):                        0.633
+Kurtosis:                       2.301   Cond. No.                     2.49e+03
+==============================================================================
+
+Notes:
+[1] Standard Errors are heteroscedasticity and autocorrelation robust (HAC) using 1 lags and without small sample correction
+[2] The condition number is large, 2.49e+03. This might indicate that there are
+strong multicollinearity or other numerical problems.
+Model A - coefficient table (these are the estimated beta values):
+            variable    coef  std_err  t_or_z  p_value  ci_low  ci_high
+               const 12.6488   9.4160  1.3433 0.179164 -5.8062  31.1038
+           Inflation -0.1266   0.0581 -2.1783 0.029384 -0.2406  -0.0127
+       Interest_Rate  0.0294   0.1670  0.1762 0.860112 -0.2979   0.3568
+         FDI_pct_GDP  0.2332   0.2011  1.1601 0.246017 -0.1608   0.6273
+  Investment_pct_GDP -0.0060   0.1312 -0.0455 0.963702 -0.2632   0.2512
+      Export_pct_GDP -0.0253   0.0291 -0.8680 0.385376 -0.0823   0.0318
+   Unemployment_Rate -1.6131   1.2435 -1.2972 0.194570 -4.0503   0.8242
+Gov_Spending_pct_GDP -0.2615   0.2692 -0.9713 0.331410 -0.7892   0.2662
+Model A - estimated equation:
+GDP_Growth_hat_t = 12.6488 - 0.1266*Inflation + 0.0294*Interest_Rate + 0.2332*FDI_pct_GDP - 0.0060*Investment_pct_GDP - 0.0253*Export_pct_GDP - 1.6131*Unemployment_Rate - 0.2615*Gov_Spending_pct_GDP
+Breusch-Pagan p-value: 0.4113
+Breusch-Godfrey(1) p-value: 0.4389
+Significant annual coefficients (p < 0.05):
+ variable    coef  p_value
+Inflation -0.1266 0.029384
+Variance Inflation Factor (VIF):
+            variable      VIF
+               const 1046.052
+           Inflation    3.907
+       Interest_Rate    7.218
+         FDI_pct_GDP    1.990
+  Investment_pct_GDP    2.757
+      Export_pct_GDP    3.073
+   Unemployment_Rate    2.883
+Gov_Spending_pct_GDP    3.043
+
+17.2. Quarterly GLSAR robustness check
+--------------------------------------
+Caution: quarterly series below are interpolated from annual data, so treat this as robustness only.
+                           GLSAR Regression Results                           
+==============================================================================
+Dep. Variable:             GDP_Growth   R-squared:                       0.309
+Model:                          GLSAR   Adj. R-squared:                  0.266
+Method:                 Least Squares   F-statistic:                     7.100
+Date:                Fri, 20 Mar 2026   Prob (F-statistic):           5.29e-07
+Time:                        13:39:32   Log-Likelihood:                -50.143
+No. Observations:                 119   AIC:                             116.3
+Df Residuals:                     111   BIC:                             138.5
+Df Model:                           7                                         
+Covariance Type:            nonrobust                                         
+========================================================================================
+                           coef    std err          t      P>|t|      [0.025      0.975]
+----------------------------------------------------------------------------------------
+const                   -9.4414      6.143     -1.537      0.127     -21.615       2.732
+Inflation               -0.0550      0.050     -1.104      0.272      -0.154       0.044
+Interest_Rate           -0.0443      0.119     -0.373      0.710      -0.280       0.191
+FDI_pct_GDP              0.0366      0.150      0.244      0.808      -0.261       0.334
+Investment_pct_GDP       0.0902      0.107      0.845      0.400      -0.121       0.302
+Export_pct_GDP           0.1712      0.042      4.100      0.000       0.088       0.254
+Unemployment_Rate       -2.4116      0.405     -5.950      0.000      -3.215      -1.608
+Gov_Spending_pct_GDP     0.2345      0.176      1.334      0.185      -0.114       0.583
+==============================================================================
+Omnibus:                        4.885   Durbin-Watson:                   0.622
+Prob(Omnibus):                  0.087   Jarque-Bera (JB):                5.533
+Skew:                           0.225   Prob(JB):                       0.0629
+Kurtosis:                       3.955   Cond. No.                         415.
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+Quarterly GLSAR coefficient table:
+            variable    coef  std_err  t_or_z  p_value   ci_low  ci_high
+               const -9.4414   6.1435 -1.5368 0.127185 -21.6150   2.7323
+           Inflation -0.0550   0.0499 -1.1038 0.272074  -0.1539   0.0438
+       Interest_Rate -0.0443   0.1188 -0.3726 0.710147  -0.2796   0.1911
+         FDI_pct_GDP  0.0366   0.1501  0.2440 0.807693  -0.2609   0.3341
+  Investment_pct_GDP  0.0902   0.1068  0.8446 0.400124  -0.1214   0.3019
+      Export_pct_GDP  0.1712   0.0418  4.0996 0.000079   0.0885   0.2540
+   Unemployment_Rate -2.4116   0.4053 -5.9499 0.000000  -3.2147  -1.6084
+Gov_Spending_pct_GDP  0.2345   0.1758  1.3341 0.184886  -0.1138   0.5829
+Quarterly GLSAR estimated equation:
+GDP_Growth_hat_t = -9.4414 - 0.0550*Inflation - 0.0443*Interest_Rate + 0.0366*FDI_pct_GDP + 0.0902*Investment_pct_GDP + 0.1712*Export_pct_GDP - 2.4116*Unemployment_Rate + 0.2345*Gov_Spending_pct_GDP
+Estimated rho: [0.97761457]
+Significant quarterly GLSAR coefficients (p < 0.05):
+         variable    coef  p_value
+   Export_pct_GDP  0.1712 0.000079
+Unemployment_Rate -2.4116 0.000000
+
+==============================================================================================================
+18. PROPHET
+==============================================================================================================
+Prophet is treated as an optional baseline for fast trend forecasting with extra regressors.
+Prophet available: NO -> ModuleNotFoundError("No module named 'prophet'")
+Section 18 output = feasibility note only. Prophet is skipped in this environment.
+
+==============================================================================================================
+19. DEEP LEARNING (LSTM / GRU)
+==============================================================================================================
+Section 19 adds a deep-learning block for quarterly forecasting/nowcasting.
+Because the sample is still small for deep learning, every result below must be interpreted as experimental evidence, not as the sole final model.
+
+19.1. Experimental design
+-------------------------
+Train end: 2022-12-31 | Lookback window: 4 quarters | Epoch cap: 250 | Batch size: 4
+Deep-learning targets:
+ - Macro-only experiments: forecast gdp_qoq_pct_recalc from lagged GDP growth + inflation + interest rate.
+ - Macro + sentiment experiment: same target, but with actual sentiment overlap variables added.
+
+19.2. Macro-only deep learning on quarterly GDP growth
+------------------------------------------------------
+Raw rows: 119 | Train windows: 106 | Test windows: 9
+Features used: ['gdp_qoq_pct_recalc', 'inflation', 'interest_rate']
+
+19.3. Macro + sentiment LSTM on actual overlap
+----------------------------------------------
+Raw rows: 23 | Train windows: 10 | Test windows: 9
+Features used: ['gdp_qoq_pct_recalc', 'inflation', 'interest_rate', 'net_sentiment', 'avg_sentiment', 'n_comments']
+
+19.4. Holdout metrics
+---------------------
+                     model  epochs_ran   rmse    mae    mape  dir_acc_pct  naive_rmse  beats_naive_rmse
+          LSTM_small_macro          26 0.3449 0.2733 15.1950         12.5      0.4078              True
+           GRU_small_macro          28 0.4247 0.3690 20.1712         37.5      0.4078             False
+        LSTM_stacked_macro          28 0.4592 0.4347 21.6615          0.0      0.4078             False
+LSTM_small_macro_sentiment          26 0.4872 0.4050 18.4759         37.5      0.4078             False
+
+19.5. Best model preview
+------------------------
+Best deep-learning model by RMSE: LSTM_small_macro
+quarter_end  actual  prediction  naive_last_value
+ 2023-03-31  1.2001      1.9565            1.2147
+ 2023-06-30  2.4172      1.9907            1.2001
+ 2023-09-30  2.3862      2.0240            2.4172
+ 2023-12-31  2.3563      2.0674            2.3862
+ 2024-03-31  2.3021      2.1198            2.3563
+ 2024-06-30  2.2259      2.1775            2.3021
+ 2024-09-30  2.1772      2.2283            2.2259
+ 2024-12-31  2.1544      2.2788            2.1772
+ 2025-03-31  2.1089      2.3289            2.1544
+
+19.6. Interpretation for the report
+-----------------------------------
+Suggested text for the project:
+- Deep learning was implemented as an additional forecasting layer, not as a replacement for the interpretable econometric core.
+- The LSTM/GRU block uses quarterly windows (lookback = 4) and a strict time split ending at 2022Q4 for training.
+- A naive last-observation benchmark is reported to avoid overstating deep-learning performance on a small sample.
+- If the best deep-learning model does not beat the naive/SARIMAX baseline, keep it as a robustness or innovation appendix.
+- If macro+sentiment LSTM beats macro-only LSTM, the result can be framed as evidence that sentiment adds nonlinear nowcasting value on the short overlap sample.
+- If it does not beat the benchmark, conclude that the current sample is too short/noisy for deep learning to dominate classical time-series models.
+
+19.7. Extra deep-learning extensions you can mention
+----------------------------------------------------
+Possible next extensions for the final report or future work:
+1) Bidirectional/attention LSTM only when the dataset becomes much longer.
+2) Multi-horizon forecasting (predict 1Q, 2Q, 4Q ahead) instead of one-step ahead.
+3) Hyperparameter tuning over lookback, hidden units, dropout, and learning rate.
+4) Add policy/event dummy variables (Covid shock, tightening cycle, trade shock) into the input tensor.
+5) Use rolling-origin backtesting for the deep-learning models exactly like the classical forecasting block.
+
+==============================================================================================================
+20. LÝ DO CHỌN MÔ HÌNH
+==============================================================================================================
+Section 20 consolidates the evidence used to choose Model A and Model B.
+
+20.1. In-sample dynamic regression on actual overlap
+----------------------------------------------------
+Model B baseline formula (macro-only):
+GDP_Growth_t = alpha0 + alpha1*GDP_Growth_{t-1} + alpha2*inflation_t + alpha3*interest_rate_t + u_t
+Model B augmented formula (macro + sentiment):
+GDP_Growth_t = alpha0 + alpha1*GDP_Growth_{t-1} + alpha2*inflation_t + alpha3*interest_rate_t
+               + alpha4*net_sentiment_t + alpha5*avg_sentiment_t + u_t
+                               model  Adj_R2    AICc
+       Macro-only dynamic regression  0.8426 61.6379
+Macro + sentiment dynamic regression  0.8920 58.0185
+Model B macro-only - coefficient table (these are the estimated alpha values):
+       variable    coef  std_err  t_or_z  p_value  ci_low  ci_high
+          const -0.6414   1.4783 -0.4339 0.664397 -3.5388   2.2561
+gdp_growth_lag1  0.9886   0.1590  6.2175 0.000000  0.6770   1.3003
+      inflation -0.9336   0.6761 -1.3809 0.167303 -2.2586   0.3915
+  interest_rate  0.4182   0.2348  1.7815 0.074826 -0.0419   0.8784
+Model B macro-only - estimated equation:
+GDP_Growth_hat_t = -0.6414 + 0.9886*gdp_growth_lag1 - 0.9336*inflation + 0.4182*interest_rate
+Model B macro+sentiment - coefficient table (these are the estimated alpha values):
+       variable     coef  std_err  t_or_z  p_value   ci_low  ci_high
+          const  -1.2459   1.1018 -1.1308 0.258135  -3.4054   0.9135
+gdp_growth_lag1   1.0897   0.1282  8.4985 0.000000   0.8384   1.3410
+      inflation  -0.9049   0.3947 -2.2926 0.021873  -1.6786  -0.1313
+  interest_rate   0.3691   0.1986  1.8588 0.063058  -0.0201   0.7584
+  net_sentiment  19.0119   4.3288  4.3919 0.000011  10.5276  27.4962
+  avg_sentiment -17.3723   6.4705 -2.6848 0.007256 -30.0543  -4.6903
+Model B macro+sentiment - estimated equation:
+GDP_Growth_hat_t = -1.2459 + 1.0897*gdp_growth_lag1 - 0.9049*inflation + 0.3691*interest_rate + 19.0119*net_sentiment - 17.3723*avg_sentiment
+Nested F-test p-value (sentiment adds explanatory power): 0.0192
+HAC Wald p-value (joint sentiment significance): 1e-06
+
+20.2. Rolling one-step forecast: macro-only vs macro+sentiment
+--------------------------------------------------------------
+            target macro_order macro_sent_order  RMSE_macro  RMSE_macro_sent  MAE_macro  MAE_macro_sent  MAPE_macro  MAPE_macro_sent  DM_p_value better_by_RMSE
+        gdp_growth   (2, 0, 0)        (2, 0, 0)      0.4479           0.6263     0.2793          0.5088        4.43             7.97      0.3675     macro-only
+gdp_qoq_pct_recalc   (1, 0, 0)        (1, 0, 0)      0.6900           0.7018     0.4093          0.5525       26.70            35.82      0.9584     macro-only
+\nForecast detail - gdp_growth
+quarter_end  actual  pred_macro  pred_macro_sent
+ 2022-09-30   6.816      6.5588           5.4040
+ 2022-12-31   5.940      5.6877           5.3607
+ 2023-03-31   5.065      4.9138           4.5066
+ 2023-06-30   5.565      4.1987           4.6962
+ 2023-09-30   6.070      6.1190           5.3603
+ 2023-12-31   6.580      6.5122           6.3599
+ 2024-03-31   7.091      6.9655           7.3740
+ 2024-06-30   7.596      7.4352           7.3479
+ 2024-09-30   8.101      7.9074           7.8662
+ 2024-12-31   8.612      8.3916           8.5356
+ 2025-03-31   9.123      8.8945           8.7169
+\nForecast detail - gdp_qoq_pct_recalc
+quarter_end  actual  pred_macro  pred_macro_sent
+ 2022-09-30  1.2163     -0.2452           0.1827
+ 2022-12-31  1.2147      0.5212           0.5591
+ 2023-03-31  1.2001      0.7552          -0.3682
+ 2023-06-30  2.4172      0.8727           1.8286
+ 2023-09-30  2.3862      2.2284           2.3725
+ 2023-12-31  2.3563      2.2586           1.6243
+ 2024-03-31  2.3021      2.2691           2.4312
+ 2024-06-30  2.2259      2.2443           2.5473
+ 2024-09-30  2.1772      2.1912           2.0707
+ 2024-12-31  2.1544      2.1572           2.7039
+ 2025-03-31  2.1089      2.1433           1.7296
+
+20.3. Structural break test for the sentiment-augmented overlap model
+---------------------------------------------------------------------
+break_date  F_stat      p_value  n1  n2
+2021-12-31 93.3157 3.000000e-08   9  13
+2022-03-31 77.7357 8.000000e-08  10  12
+2023-03-31  0.4185 8.507758e-01  14   8
+
+20.4. Why Model A and Model B should be separated
+-------------------------------------------------
+                criterion                                                                                    evidence                                                                   implication
+                 Coverage             Annual macro usable rows = 28, but actual macro+sentiment overlap = 23 quarters Cannot treat long-run macro and short-run sentiment as one homogeneous sample
+                  Leakage   Sentiment columns in model_ready before 2019Q3 have nunique = 1 -> clear backfill pattern                                Do not use model_ready for historical training
+Out-of-sample performance Rolling forecasts show macro-only beats or matches macro+sentiment on RMSE for both targets                   Sentiment helps in-sample fit, but not forecasting accuracy
+     Structural stability                                           Chow tests indicate strong break around 2021-2022                Sentiment relationship is not stable across the overlap period
+Best forecasting baseline                                  Section 15 selects SARIMAX(0, 0, 3) for gdp_qoq_pct_recalc                 Use macro SARIMAX as the main short-term forecasting baseline
+         Interpretability              Section 17 keeps an annual OLS/HAC model with interpretable macro coefficients                                      Use OLS/HAC as the main structural model
+
+20.5. Final recommendation
+--------------------------
+1) NÊN TÁCH thành 2 mô hình nghiên cứu dưới cùng một khung đề tài.
+   - Mô hình A (cấu trúc/kinh tế lượng): annual OLS/HAC để giải thích GDP growth bằng biến vĩ mô chính thức.
+   - Mô hình B (forecast/nowcast): quarterly SARIMAX làm baseline dự báo; sentiment chỉ dùng như mô hình phụ trợ trên overlap thực.
+2) Không nên gộp thành một mô hình duy nhất vì:
+   - coverage mismatch giữa macro dài hạn và sentiment ngắn hạn;
+   - model_ready có leakage/backfill sentiment trước 2019Q3;
+   - sentiment cải thiện in-sample nhưng không cải thiện out-of-sample;
+   - có structural break mạnh quanh 2021-2022.
+3) Kết luận lựa chọn mô hình:
+   - Model A main choice: Annual OLS/HAC (explainability / structural interpretation)
+   - Model B main choice: Quarterly SARIMAX on gdp_qoq_pct_recalc (forecasting)
+   - Sentiment model: supplementary evidence only, not the single integrated final model
+\n==============================================================================================================
+DONE. Full report saved to: /Users/TranAnh/Documents/Data_file_NCKH/ordered_modeling_report.txt
+==============================================================================================================
