@@ -1,0 +1,9 @@
+item,value
+project_root,/Users/TranAnh/Documents/Data_file_NCKH/Data_Science_Midterm_Project-main
+merged_sentiment_file,/Users/TranAnh/Documents/Data_file_NCKH/Data_Science_Midterm_Project-main/sentiment_data_processed/model_ready_quarterly_with_scaled.csv
+macro_file,/Users/TranAnh/Documents/Data_file_NCKH/Data_Science_Midterm_Project-main/secondary_data_processed.csv
+sentiment_real_start,2019-09-30
+train_end,2022-12-31
+forecast_horizons,"[1, 2, 4]"
+target_macro,gdp_qoq_pct_recalc
+target_overlaps,"['gdp_growth', 'gdp_qoq_pct_recalc']"

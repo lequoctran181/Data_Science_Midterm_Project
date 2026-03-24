@@ -1,0 +1,4 @@
+target,horizon,model_A,model_B,DM_stat,DM_p_value,mean_loss_diff_A_minus_B
+gdp_qoq_pct_recalc,1,gdp_qoq_pct_recalc_macro_only,gdp_qoq_pct_recalc_macro_plus_sentiment,-0.3832186007358348,0.7104524575509283,-0.13124482379209615
+gdp_qoq_pct_recalc,2,gdp_qoq_pct_recalc_macro_only,gdp_qoq_pct_recalc_macro_plus_sentiment,0.6727332277615096,0.5180150967701969,0.32114399262214127
+gdp_qoq_pct_recalc,4,gdp_qoq_pct_recalc_macro_only,gdp_qoq_pct_recalc_macro_plus_sentiment,0.03163387220297188,0.9754544551590756,0.010782439801650718

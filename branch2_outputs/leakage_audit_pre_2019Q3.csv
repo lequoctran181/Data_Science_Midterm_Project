@@ -1,0 +1,6 @@
+variable,non_null_count_pre_cutoff,nunique_pre_cutoff,first_non_null_value
+n_comments,97,1,3758.0
+avg_sentiment,97,1,0.0295594199042043
+net_sentiment,97,1,0.0548163916977115
+positive_ratio,97,1,0.0904736562001064
+negative_ratio,97,1,0.0356572645023948

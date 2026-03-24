@@ -1,0 +1,3 @@
+model,Adj_R2,AICc
+Macro-only dynamic regression,0.8819363961982832,69.41948807460868
+Macro + sentiment dynamic regression,0.901606920364917,68.42423665506685
