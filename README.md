@@ -232,53 +232,7 @@ These folders store generated figures, diagnostic outputs, and rerun / robustnes
 
 ---
 
-## 6. Suggested repository structure
-
-The report clearly identifies the major files, but it does not fully document the exact directory tree.  
-A GitHub-friendly structure aligned with the project would look like this:
-
-```text
-.
-├── README.md
-├── requirements.txt
-├── data
-│   ├── raw
-│   │   ├── secondary_data_annual.csv
-│   │   ├── secondary_data_annual.xlsx
-│   │   ├── youtube_video_index.csv
-│   │   ├── raw_public_sentiment_data/
-│   │   └── collection_summary.json
-│   ├── interim
-│   │   ├── secondary_data_cleaned.csv
-│   │   ├── secondary_data_cleaned.xlsx
-│   │   ├── macro_quarterly_prepared.csv
-│   │   └── sentiment_quarterly_cleaned_by_topic.csv
-│   └── processed
-│       ├── model_ready_quarterly_with_scaled.csv
-│       ├── scaler_parameters.csv
-│       └── final_summary.json
-├── notebooks
-│   ├── process_secondary_data.ipynb
-│   ├── structural_breaks_dummies.ipynb
-│   └── modeling_and_forecasting.ipynb
-├── scripts
-│   ├── collect_secondary_data.py
-│   ├── collect_sentiment_data_youtube.py
-│   └── utility_functions.py
-├── reports
-│   ├── data_modeling_report.txt
-│   └── ordered_modeling_report.txt
-└── outputs
-    ├── statistical_testing_images/
-    ├── additional_analysis_outputs/
-    └── branch2_outputs/
-```
-
-If your actual repository tree differs, keep the README narrative and simply update the paths.
-
----
-
-## 7. Main empirical findings
+## 6. Main empirical findings
 
 Based on the modeling results documented in the report, the central findings are:
 
@@ -301,20 +255,20 @@ Based on the modeling results documented in the report, the central findings are
 
 ---
 
-## 8. Model summary
+## 7. Model summary
 
-### 8.1 Structural model (annual)
+### 7.1 Structural model (annual)
 - Target: `GDP_Growth`
 - Frequency: annual
 - Method: OLS with HAC standard errors
 - Purpose: interpretation, long-run structural evidence
 
-### 8.2 Quarterly robustness model
+### 7.2 Quarterly robustness model
 - Method: GLSAR on interpolated quarterly-like data
 - Purpose: sensitivity check only
 - Warning: not a substitute for official annual structural inference
 
-### 8.3 Forecasting model
+### 7.3 Forecasting model
 - Targets considered:
   - `log_gdp`
   - `gdp_growth`
@@ -326,21 +280,21 @@ Based on the modeling results documented in the report, the central findings are
 - Preferred baseline:
   - SARIMAX with macro exogenous inputs
 
-### 8.4 Sentiment-augmented model
+### 7.4 Sentiment-augmented model
 - Sample restricted to: **2019Q3–2025Q1**
 - Purpose:
   - in-sample explanatory comparison,
   - rolling one-step out-of-sample evaluation,
   - nested tests and forecast-comparison tests
 
-### 8.5 Experimental deep learning layer
+### 7.5 Experimental deep learning layer
 - LSTM / GRU variants tested on time-ordered train/test splits
 - Used as an exploratory forecasting extension
 - Interpreted cautiously due to short overlap sample
 
 ---
 
-## 9. Reproducibility notes
+## 8. Reproducibility notes
 
 This repository is designed around **traceable outputs** and **reproducible preprocessing**.
 
@@ -364,9 +318,9 @@ For credible replication, always preserve:
 
 ---
 
-## 10. How to use this repository
+## 9. How to use this repository
 
-## 10.1 Environment setup
+## 9.1 Environment setup
 
 Create a clean Python environment and install the required packages:
 
@@ -390,7 +344,7 @@ Typical packages expected for this project include:
 - optional: `tensorflow` or `keras`
 - optional: `prophet`
 
-## 10.2 Data collection
+## 9.2 Data collection
 Run the macro collection script and the YouTube sentiment collection script, then review the raw outputs and metadata summaries.
 
 ```bash
@@ -398,14 +352,14 @@ python scripts/collect_secondary_data.py
 python scripts/collect_sentiment_data_youtube.py
 ```
 
-## 10.3 Preprocessing
+## 9.3 Preprocessing
 Open the macro preprocessing notebook and generate the cleaned and processed datasets.
 
 ```bash
 jupyter notebook notebooks/process_secondary_data.ipynb
 ```
 
-## 10.4 Modeling
+## 9.4 Modeling
 Use the modeling notebooks or scripts to reproduce:
 
 - annual OLS/HAC estimation,
@@ -417,7 +371,7 @@ Use the modeling notebooks or scripts to reproduce:
 
 ---
 
-## 11. Important limitations
+## 10. Important limitations
 
 This repository is methodologically careful, but several limitations remain:
 
@@ -437,7 +391,7 @@ These limitations do not invalidate the project; they define the correct interpr
 
 ---
 
-## 12. Recommended reading of the repository
+## 11. Recommended reading of the repository
 
 To understand the project in the right order, read it in this sequence:
 
@@ -452,7 +406,7 @@ To understand the project in the right order, read it in this sequence:
 
 ---
 
-## 13. What this repository contributes
+## 12. What this repository contributes
 
 This repository contributes more than a set of regression outputs. It offers:
 
@@ -461,31 +415,3 @@ This repository contributes more than a set of regression outputs. It offers:
 - a documented treatment of **data leakage**,
 - a practical example of combining **official macro data** with **alternative text-derived sentiment data**,
 - a balanced and transparent interpretation of both successful and non-dominant model results.
-
----
-
-## 14. Citation
-
-If you use this repository, please cite the project report and the repository itself.
-
-**Suggested citation format:**
-
-> Author(s). *Macroeconomic Determinants of Vietnam’s Economic Growth: Empirical Analysis and Forecasting*. GitHub repository and project report.
-
-You may also want to cite the data sources separately:
-
-- World Bank, World Development Indicators
-- YouTube Data API
-- any referenced academic literature used in the report
-
----
-
-## 15. Final caution
-
-The most important takeaway from this repository is methodological:
-
-> **Do not confuse a good in-sample fit with valid forecasting evidence, and do not confuse interpolated quarterly smoothness with true macroeconomic signal.**
-
-The repository’s strongest contribution is its willingness to make these distinctions explicit.
-
----
